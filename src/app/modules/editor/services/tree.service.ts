@@ -4,26 +4,43 @@ import { BehaviorSubject } from 'rxjs';
 /**
  * Node for to-do item
  */
-export class TodoItemNode {
+export class ItemNode {
   name: string = '';
-  children?: TodoItemNode[];
+  type: 'folder' | 'item' = 'item';
+  children?: ItemNode[];
 }
 
-export const TREE_DATA: TodoItemNode[] = [
+export const TREE_DATA: ItemNode[] = [
   {
     name: 'Fruit',
-    children: [{ name: 'Apple' }, { name: 'Banana' }, { name: 'Fruit loops' }],
+    type: 'folder',
+    children: [
+      { type: 'item', name: 'Apple' },
+      { type: 'item', name: 'Banana' },
+      { type: 'item', name: 'Fruit loops' },
+      { type: 'folder', name: 'folder' },
+      { type: 'item', name: '' },
+    ],
   },
   {
     name: 'Vegetables',
+    type: 'folder',
     children: [
       {
         name: 'Green',
-        children: [{ name: 'Broccoli' }, { name: 'Brussels sprouts' }],
+        type: 'folder',
+        children: [
+          { type: 'item', name: 'Broccoli' },
+          { type: 'item', name: 'Brussels sprouts' },
+        ],
       },
       {
         name: 'Orange',
-        children: [{ name: 'Pumpkins' }, { name: 'Carrots' }],
+        type: 'folder',
+        children: [
+          { type: 'item', name: 'Pumpkins' },
+          { type: 'item', name: 'Carrots' },
+        ],
       },
     ],
   },
@@ -31,9 +48,9 @@ export const TREE_DATA: TodoItemNode[] = [
 
 @Injectable()
 export class TreeService {
-  dataChange = new BehaviorSubject<TodoItemNode[]>([]);
+  dataChange = new BehaviorSubject<ItemNode[]>([]);
 
-  get data(): TodoItemNode[] {
+  get data(): ItemNode[] {
     return this.dataChange.value;
   }
 }

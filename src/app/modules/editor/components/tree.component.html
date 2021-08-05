@@ -1,12 +1,21 @@
+<div [matMenuTriggerFor]="contextMenu" class="menu-toggle" [style]="menuPositionStyle"></div>
 <mat-tree [dataSource]="dataSource" [treeControl]="treeControl">
-  <mat-tree-node *matTreeNodeDef="let node" matTreeNodeToggle>
+  <mat-tree-node *matTreeNodeDef="let node" matTreeNodeToggle matRipple>
     {{ node.name }}
   </mat-tree-node>
-  <mat-nested-tree-node *matTreeNodeDef="let node; when: hasChild">
-    <div class="mat-tree-node">
-      <button mat-icon-button matTreeNodeToggle [attr.aria-label]="'Toggle ' + node.name">
-        <mat-icon class="mat-icon-rtl-mirror">
-          {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
+
+  <mat-nested-tree-node *matTreeNodeDef="let node; when: isFolder" matTreeNodeToggle
+    (contextmenu)="onContextMenu($event, node)">
+    <div class="mat-tree-node" matRipple>
+      <button mat-icon-button [attr.aria-label]="'Toggle ' + node.name">
+        <mat-icon
+          [class]="{ 'mat-tree-node__arrow': true, 'mat-tree-node__arrow--opened': treeControl.isExpanded(node) }">
+          arrow_right
+        </mat-icon>
+      </button>
+      <button mat-icon-button [attr.aria-label]="'Toggle ' + node.name">
+        <mat-icon>
+          {{treeControl.isExpanded(node) ? 'folder_open' : 'folder'}}
         </mat-icon>
       </button>
       {{node.name}}
@@ -15,4 +24,18 @@
       <ng-container matTreeNodeOutlet></ng-container>
     </div>
   </mat-nested-tree-node>
+
+  <mat-tree-node *matTreeNodeDef="let node; when: hasNoContent" matTreeNodeToggle>
+    <mat-form-field appearance="outline">
+      <mat-label>New item...</mat-label>
+      <input matInput #itemValue placeholder="Ex. Lettuce">
+    </mat-form-field>
+  </mat-tree-node>
 </mat-tree>
+
+<mat-menu #contextMenu="matMenu" [overlapTrigger]="true">
+  <ng-template matMenuContent let-item="item">
+    <button mat-menu-item>Action 1</button>
+    <button mat-menu-item>Action 2</button>
+  </ng-template>
+</mat-menu>
