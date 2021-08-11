@@ -51,7 +51,7 @@ export class TreeComponent {
 
   selectedNode: ItemFlatNode | null = null;
 
-  onContextMenu(event: MouseEvent, node: ItemFlatNode) {
+  onContextMenu(event: MouseEvent, node: ItemFlatNode | null) {
     event.preventDefault();
     event.stopPropagation();
     const { clientX, clientY } = event;
@@ -62,14 +62,18 @@ export class TreeComponent {
   }
 
   addItem(type: 'item' | 'folder') {
+    let inserted = null;
     if (this.selectedNode && this.selectedNode.type === 'folder') {
       const parentNode = this.flatNodeMap.get(this.selectedNode);
-      const inserted = this._treeService.insertEmptyNode(parentNode!, type);
+      inserted = this._treeService.insertEmptyNode(parentNode!, type);
       this.treeControl.expand(this.selectedNode);
-      if (inserted) {
-        const newNode = this.nestedNodeMap.get(inserted) || null;
-        this.selectedNode = newNode;
-      }
+    } else {
+      inserted = this._treeService.insertEmptyNode(null, type);
+    }
+
+    if (inserted) {
+      const newNode = this.nestedNodeMap.get(inserted) || null;
+      this.selectedNode = newNode;
     }
   }
 
@@ -78,6 +82,10 @@ export class TreeComponent {
       const parentNode = this.flatNodeMap.get(this.selectedNode);
       this._treeService.updateNode(parentNode!, itemValue);
     }
+  }
+
+  viewItem(node: ItemFlatNode) {
+    this.selectedNode = node;
   }
 
   get menuPositionStyle() {

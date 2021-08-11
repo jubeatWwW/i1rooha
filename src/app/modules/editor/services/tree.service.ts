@@ -9,6 +9,7 @@ export class ItemNode {
   type: 'folder' | 'item' = 'item';
   children?: ItemNode[];
   path?: string[] = [];
+  content?: string;
 }
 
 export class ItemFlatNode {
@@ -17,6 +18,7 @@ export class ItemFlatNode {
   level: number = 0;
   path?: string[] = [];
   expandable: boolean = false;
+  content?: string;
 }
 
 export const TREE_DATA: ItemNode[] = [
@@ -71,9 +73,16 @@ export class TreeService {
     });
   }
 
-  insertEmptyNode(parent: ItemNode, type: 'folder' | 'item' = 'item') {
+  insertEmptyNode(parent: ItemNode | null, type: 'folder' | 'item' = 'item') {
+    const newNode = new ItemNode();
+    if (!parent) {
+      console.log('test');
+      newNode.type = type;
+      this.data.push(newNode);
+      this.dataChange.next(this.data);
+      return newNode;
+    }
     if (parent.type === 'folder') {
-      const newNode = new ItemNode();
       newNode.type = type;
       if (parent.children) {
         parent.children.push(newNode);
