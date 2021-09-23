@@ -1,0 +1,35 @@
+<div class="tree-view" #treeView>
+  <tree-root [focused]="true" [nodes]="nodes" [options]="options" #tree>
+    <ng-template #treeNodeWrapperTemplate let-node let-index="index">
+      <div class="node-wrapper" [style.padding-left]="node.getNodePadding()">
+        <mat-icon
+          *ngIf="node.data.type === 'folder'"
+          (click)="node.toggleExpanded()"
+        >
+          {{ node.isExpanded ? "folder_open" : "folder" }}
+        </mat-icon>
+        <div
+          class="node-content-wrapper"
+          [class.node-content-wrapper-active]="node.isActive"
+          [class.node-content-wrapper-focused]="node.isFocused"
+          (click)="node.mouseAction('click', $event)"
+          (dblclick)="node.mouseAction('dblClick', $event)"
+          (contextmenu)="node.mouseAction('contextMenu', $event)"
+          (treeDrop)="node.onDrop($event)"
+          [treeAllowDrop]="node.allowDrop"
+          [treeDrag]="node"
+          [treeDragEnabled]="node.allowDrag()"
+        >
+          <tree-node-content [node]="node" [index]="index"></tree-node-content>
+        </div>
+      </div>
+    </ng-template>
+  </tree-root>
+</div>
+
+<p-contextMenu
+  [model]="items"
+  [target]="treeView"
+  [appendTo]="'body'"
+  #menu
+></p-contextMenu>
