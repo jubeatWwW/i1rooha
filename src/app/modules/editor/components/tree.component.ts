@@ -1,12 +1,23 @@
-import { Component, ViewChild } from '@angular/core';
 import {
-  MatTreeFlattener,
-  MatTreeFlatDataSource,
-} from '@angular/material/tree';
-import { MatMenuTrigger } from '@angular/material/menu';
-import { FlatTreeControl } from '@angular/cdk/tree';
+  Component,
+  ViewChild,
+  ElementRef,
+  AfterViewChecked,
+  OnInit,
+} from '@angular/core';
 
-import { TreeService, ItemNode, ItemFlatNode } from '../services/tree.service';
+import {
+  IActionMapping,
+  ITreeState,
+  ITreeOptions,
+  TreeNode,
+  TREE_ACTIONS,
+  TreeModel,
+  TreeComponent as Tree,
+} from '@circlon/angular-tree-component';
+import { MenuItem, PrimeIcons } from 'primeng/api';
+import { ContextMenu } from 'primeng/contextmenu';
+import { TreeService, ItemNode } from '../services/tree.service';
 
 @Component({
   selector: 'editor-tree',
@@ -14,114 +25,74 @@ import { TreeService, ItemNode, ItemFlatNode } from '../services/tree.service';
   styleUrls: ['./tree.component.sass'],
   providers: [TreeService],
 })
-export class TreeComponent {
-  /** Map from flat node to nested node. This helps us finding the nested node to be modified */
-  flatNodeMap = new Map<ItemFlatNode, ItemNode>();
+export class TreeComponent implements OnInit {
+  @ViewChild('tree') tree!: Tree;
 
-  /** Map from nested node to flattened node. This helps us to keep the same object for selection */
-  nestedNodeMap = new Map<ItemNode, ItemFlatNode>();
+  @ViewChild('menu') contextMenu!: ContextMenu;
 
-  dataSource: MatTreeFlatDataSource<ItemNode, ItemFlatNode>;
+  public nodes: ItemNode[];
 
-  treeControl: FlatTreeControl<ItemFlatNode>;
+  items!: MenuItem[];
 
-  treeFlattener: MatTreeFlattener<ItemNode, ItemFlatNode>;
+  ngOnInit() {
+    this._treeService.nodes$.subscribe((nodes) => {
+      this.nodes = nodes;
+    });
+    this.items = [
+      {
+        label: 'File',
+        items: [
+          {
+            label: '新增檔案',
+            icon: PrimeIcons.PLUS,
+            command: () => {
+              this._treeService.addNode(this.tree.treeModel, 'item');
+            },
+          },
+          {
+            label: '新增資料夾',
+            icon: PrimeIcons.PLUS,
+            command: () => {
+              this._treeService.addNode(this.tree.treeModel, 'folder');
+            },
+          },
+        ],
+      },
+      {
+        label: 'Edit',
+        icon: 'pi pi-fw pi-pencil',
+        items: [
+          { label: 'Delete', icon: 'pi pi-fw pi-trash' },
+          { label: 'Refresh', icon: 'pi pi-fw pi-refresh' },
+        ],
+      },
+    ];
+  }
 
-  transfomer = (node: ItemNode, level: number) => {
-    const existingNode = this.nestedNodeMap.get(node);
-    const flatNode =
-      existingNode && existingNode.name === node.name
-        ? existingNode
-        : new ItemFlatNode();
-    flatNode.name = node.name;
-    flatNode.type = node.type;
-    flatNode.level = level;
-    flatNode.expandable = !!node.children?.length;
-    this.flatNodeMap.set(flatNode, node);
-    this.nestedNodeMap.set(node, flatNode);
-    return flatNode;
+  actionMapping: IActionMapping = {
+    mouse: {
+      contextMenu: (tree, node, $event) => {
+        $event.preventDefault();
+        node.focus();
+        this.contextMenu.show();
+      },
+      click: (tree, node, $event) => {
+        if (node.data.type === 'item') {
+          console.log(node);
+        }
+        TREE_ACTIONS.TOGGLE_ACTIVE(tree, node, $event);
+      },
+    },
   };
 
-  @ViewChild(MatMenuTrigger)
-  contextMenu!: MatMenuTrigger;
-
-  menuX: number = 0;
-
-  menuY: number = 0;
-
-  selectedNode: ItemFlatNode | null = null;
-
-  onContextMenu(event: MouseEvent, node: ItemFlatNode | null) {
-    event.preventDefault();
-    event.stopPropagation();
-    const { clientX, clientY } = event;
-    this.menuX = clientX;
-    this.menuY = clientY;
-    this.selectedNode = node;
-    this.contextMenu.openMenu();
-  }
-
-  addItem(type: 'item' | 'folder') {
-    let inserted = null;
-    if (this.selectedNode && this.selectedNode.type === 'folder') {
-      const parentNode = this.flatNodeMap.get(this.selectedNode);
-      inserted = this._treeService.insertEmptyNode(parentNode!, type);
-      this.treeControl.expand(this.selectedNode);
-    } else {
-      inserted = this._treeService.insertEmptyNode(null, type);
-    }
-
-    if (inserted) {
-      const newNode = this.nestedNodeMap.get(inserted) || null;
-      this.selectedNode = newNode;
-    }
-  }
-
-  saveItem(itemValue: string) {
-    if (this.selectedNode) {
-      const parentNode = this.flatNodeMap.get(this.selectedNode);
-      this._treeService.updateNode(parentNode!, itemValue);
-    }
-  }
-
-  viewItem(node: ItemFlatNode) {
-    this.selectedNode = node;
-  }
-
-  get menuPositionStyle() {
-    return {
-      left: `${this.menuX}px`,
-      top: `${this.menuY}px`,
-    };
-  }
+  public options: ITreeOptions = {
+    allowDrag: (node: TreeNode) => node.data.type === 'item',
+    allowDrop: (node: TreeNode, { parent, index }) =>
+      parent.data.type === 'folder',
+    actionMapping: this.actionMapping,
+  };
 
   constructor(private _treeService: TreeService) {
-    this.treeFlattener = new MatTreeFlattener(
-      this.transfomer,
-      this.getLevel,
-      this.isExpandable,
-      this.getChildren
-    );
-    this.treeControl = new FlatTreeControl<ItemFlatNode>(
-      this.getLevel,
-      this.isExpandable
-    );
-    this.dataSource = new MatTreeFlatDataSource(
-      this.treeControl,
-      this.treeFlattener
-    );
-    _treeService.dataChange.subscribe((data) => {
-      this.dataSource.data = data;
-    });
+    this.nodes = _treeService.nodes;
   }
-
-  getLevel = (node: ItemFlatNode) => node.level;
-
-  isExpandable = (node: ItemFlatNode) => node.expandable;
-
-  getChildren = (node: ItemNode): ItemNode[] => node?.children || [];
-
-  isFolder = (_: number, node: ItemNode) => node.type === 'folder';
-
-  hasNoContent = (_: number, node: ItemNode) => node.name === '';
 }

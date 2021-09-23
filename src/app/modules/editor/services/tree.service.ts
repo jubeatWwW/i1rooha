@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
+import { TreeModel } from '@circlon/angular-tree-component';
+
 /**
  * Node for to-do item
  */
@@ -9,15 +11,6 @@ export class ItemNode {
   type: 'folder' | 'item' = 'item';
   children?: ItemNode[];
   path?: string[] = [];
-  content?: string;
-}
-
-export class ItemFlatNode {
-  name: string = '';
-  type: 'folder' | 'item' = 'item';
-  level: number = 0;
-  path?: string[] = [];
-  expandable: boolean = false;
   content?: string;
 }
 
@@ -58,53 +51,32 @@ export const TREE_DATA: ItemNode[] = [
 
 @Injectable()
 export class TreeService {
-  dataChange = new BehaviorSubject<ItemNode[]>([]);
+  nodes$ = new BehaviorSubject<ItemNode[]>(TREE_DATA);
 
-  buildFileTree(data: ItemNode[], path: string[] = []): ItemNode[] {
-    return data.map((node) => {
-      const newPath = [...path, node.name];
-      return node.children
-        ? {
-            ...node,
-            path: newPath,
-            children: this.buildFileTree(node.children, newPath),
-          }
-        : { ...node, path: newPath };
-    });
+  get nodes(): ItemNode[] {
+    return this.nodes$.value;
   }
 
-  insertEmptyNode(parent: ItemNode | null, type: 'folder' | 'item' = 'item') {
-    const newNode = new ItemNode();
-    if (!parent) {
-      console.log('test');
-      newNode.type = type;
-      this.data.push(newNode);
-      this.dataChange.next(this.data);
-      return newNode;
-    }
-    if (parent.type === 'folder') {
-      newNode.type = type;
-      if (parent.children) {
-        parent.children.push(newNode);
+  addNode(tree: TreeModel, type: 'item' | 'folder' = 'item') {
+    const node = tree.getFocusedNode();
+    if (node) {
+      if (node.data.type === 'folder') {
+        if (node?.data?.children?.length) {
+          node.data.children.push({ name: 'new Item', type });
+        } else {
+          node.data.children = [{ name: 'new Item', type }];
+        }
+        tree.update();
+        node.expand();
       } else {
-        parent.children = [newNode];
+        const parent = node.parent;
+        parent.data.children.push({ name: 'new Item', type });
+        tree.update();
+        parent.expand();
       }
-      this.dataChange.next(this.data);
-      return newNode;
+    } else {
+      this.nodes$.next([...this.nodes$.value, { name: 'new Item', type }]);
+      tree.update();
     }
-    return null;
-  }
-
-  updateNode(node: ItemNode, name: string) {
-    node.name = name;
-    this.dataChange.next(this.data);
-  }
-
-  get data(): ItemNode[] {
-    return this.dataChange.value;
-  }
-
-  constructor() {
-    this.dataChange.next(this.buildFileTree(TREE_DATA));
   }
 }

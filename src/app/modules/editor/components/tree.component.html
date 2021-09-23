@@ -1,39 +1,35 @@
-<div [matMenuTriggerFor]="contextMenu" class="menu-toggle" [style]="menuPositionStyle"></div>
-<mat-tree [dataSource]="dataSource" [treeControl]="treeControl" (contextmenu)="onContextMenu($event, null)">
-  <mat-tree-node *matTreeNodeDef="let node" matTreeNodeToggle matTreeNodePadding matRipple (click)="viewItem(node)">
-    {{ node.name }}
-  </mat-tree-node>
+<div class="tree-view" #treeView>
+  <tree-root [focused]="true" [nodes]="nodes" [options]="options" #tree>
+    <ng-template #treeNodeWrapperTemplate let-node let-index="index">
+      <div class="node-wrapper" [style.padding-left]="node.getNodePadding()">
+        <mat-icon
+          *ngIf="node.data.type === 'folder'"
+          (click)="node.toggleExpanded()"
+        >
+          {{ node.isExpanded ? "folder_open" : "folder" }}
+        </mat-icon>
+        <div
+          class="node-content-wrapper"
+          [class.node-content-wrapper-active]="node.isActive"
+          [class.node-content-wrapper-focused]="node.isFocused"
+          (click)="node.mouseAction('click', $event)"
+          (dblclick)="node.mouseAction('dblClick', $event)"
+          (contextmenu)="node.mouseAction('contextMenu', $event)"
+          (treeDrop)="node.onDrop($event)"
+          [treeAllowDrop]="node.allowDrop"
+          [treeDrag]="node"
+          [treeDragEnabled]="node.allowDrag()"
+        >
+          <tree-node-content [node]="node" [index]="index"></tree-node-content>
+        </div>
+      </div>
+    </ng-template>
+  </tree-root>
+</div>
 
-  <mat-tree-node *matTreeNodeDef="let node; when: hasNoContent" matTreeNodeToggle matTreeNodePadding>
-    <button *ngIf="node.type === 'folder'" mat-icon-button [attr.aria-label]="'Toggle ' + node.name">
-      <mat-icon>folder</mat-icon>
-    </button>
-    <mat-form-field appearance="outline">
-      <mat-label>New item...</mat-label>
-      <input matInput #itemValue (keyup.enter)="saveItem(itemValue.value)">
-    </mat-form-field>
-  </mat-tree-node>
-
-  <mat-tree-node *matTreeNodeDef="let node; when: isFolder" matTreeNodePadding matTreeNodeToggle
-    (contextmenu)="onContextMenu($event, node)" matRipple>
-    <button mat-icon-button [attr.aria-label]="'Toggle ' + node.name">
-      <mat-icon
-        [class]="{ 'mat-tree-node__arrow': true, 'mat-tree-node__arrow--opened': treeControl.isExpanded(node) }">
-        arrow_right
-      </mat-icon>
-    </button>
-    <button mat-icon-button [attr.aria-label]="'Toggle ' + node.name">
-      <mat-icon>
-        {{treeControl.isExpanded(node) ? 'folder_open' : 'folder'}}
-      </mat-icon>
-    </button>
-    {{node.name}}
-  </mat-tree-node>
-</mat-tree>
-
-<mat-menu #contextMenu="matMenu" [overlapTrigger]="true">
-  <ng-template matMenuContent let-item="item">
-    <button mat-menu-item (click)="addItem('folder')">Add Folder</button>
-    <button mat-menu-item (click)="addItem('item')">Add Item</button>
-  </ng-template>
-</mat-menu>
+<p-contextMenu
+  [model]="items"
+  [target]="treeView"
+  [appendTo]="'body'"
+  #menu
+></p-contextMenu>
